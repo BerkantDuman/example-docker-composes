@@ -1,0 +1,22 @@
+services:
+  nginx:
+    build: .
+    container_name: iam-channel-nginx
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    depends_on:
+      - individual-mock
+      - commercial-mock
+
+  # Mock: bireysel (individual) auth backend'i - /auth/realms/main/ altina proxy'lenir
+  # Kendi openid-configuration'ini "main" realm adresleriyle doner
+  individual-mock:
+    build: ./mocks/individual
+    container_name: individual-mock
+
+  # Mock: kurumsal (commercial) auth backend'i - /auth/realms/comm/ altina proxy'lenir
+  # Kendi openid-configuration'ini "comm" realm adresleriyle doner
+  commercial-mock:
+    build: ./mocks/commercial
+    container_name: commercial-mock

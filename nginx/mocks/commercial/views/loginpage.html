@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Commercial Login (Mock)</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f2f4f7;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+    }
+    .card {
+        background: #fff;
+        padding: 32px 40px;
+        border-radius: 8px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+        width: 320px;
+    }
+    h1 {
+        font-size: 18px;
+        margin: 0 0 20px;
+        color: #222;
+    }
+    label {
+        display: block;
+        font-size: 13px;
+        color: #444;
+        margin-bottom: 4px;
+    }
+    input {
+        width: 100%;
+        padding: 8px 10px;
+        margin-bottom: 16px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+        font-size: 14px;
+    }
+    button {
+        width: 100%;
+        padding: 10px;
+        background: #2c5cc5;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    button:hover {
+        background: #24499e;
+    }
+    .error {
+        color: #c0392b;
+        font-size: 13px;
+        margin-bottom: 12px;
+        display: none;
+    }
+    .success {
+        display: none;
+    }
+    .success p {
+        font-size: 13px;
+        color: #333;
+        word-break: break-all;
+    }
+    .success code {
+        background: #eef1f6;
+        padding: 2px 4px;
+        border-radius: 3px;
+    }
+    .badge {
+        display: inline-block;
+        font-size: 11px;
+        color: #888;
+        margin-top: 16px;
+    }
+</style>
+</head>
+<body>
+<div class="card">
+    <h1>Commercial - Giris Yap</h1>
+
+    <div id="errorBox" class="error">Kullanici adi ve sifre zorunludur.</div>
+
+    <form id="loginForm">
+        <label for="username">Kullanici Adi</label>
+        <input type="text" id="username" name="username" autocomplete="username">
+
+        <label for="password">Sifre</label>
+        <input type="password" id="password" name="password" autocomplete="current-password">
+
+        <button type="submit">Giris Yap</button>
+    </form>
+
+    <div id="successBox" class="success">
+        <p><strong>Giris basarili (mock)</strong></p>
+        <p>code: <code id="outCode"></code></p>
+        <p>state: <code id="outState"></code></p>
+        <p id="redirectInfo"></p>
+    </div>
+
+    <div class="badge">realm: comm</div>
+</div>
+
+<script>
+(function () {
+    var params = new URLSearchParams(window.location.search);
+    var redirectUri = params.get('redirect_uri');
+    var state = params.get('state');
+
+    function randomCode() {
+        return 'mock-code-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        var username = document.getElementById('username').value.trim();
+        var password = document.getElementById('password').value;
+        var errorBox = document.getElementById('errorBox');
+
+        if (!username || !password) {
+            errorBox.style.display = 'block';
+            return;
+        }
+        errorBox.style.display = 'none';
+
+        var code = randomCode();
+
+        if (redirectUri) {
+            var separator = redirectUri.indexOf('?') === -1 ? '?' : '&';
+            var target = redirectUri + separator + 'code=' + encodeURIComponent(code);
+            if (state) {
+                target += '&state=' + encodeURIComponent(state);
+            }
+            window.location.href = target;
+            return;
+        }
+
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('outCode').textContent = code;
+        document.getElementById('outState').textContent = state || '(yok)';
+        document.getElementById('redirectInfo').textContent = 'redirect_uri verilmedigi icin yonlendirme yapilmadi.';
+        document.getElementById('successBox').style.display = 'block';
+    });
+})();
+</script>
+</body>
+</html>
