@@ -1,0 +1,20 @@
+services:
+ collector:
+    image: otel/opentelemetry-collector-contrib:0.113.0
+    profiles: [collector]
+    volumes:
+      - ./otel-config.yaml:/otel-config.yaml
+    command: ["--config=/otel-config.yaml"]
+    ports:
+      - "1888:1888" # pprof extension
+      - "8888:8888" # Prometheus metrics exposed by the collector
+      - "8889:8889" # Prometheus exporter metrics
+      - "13133:13133" # health_check extension
+      - "4317:4317" # OTLP gRPC receiver
+      - "4318:4318" # OTLP http receiver
+      - "55679:55679" # zpages extension
+    networks:
+      - default_bridge
+networks:
+  default_bridge:
+    driver: bridge

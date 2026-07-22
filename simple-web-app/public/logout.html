@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Logged Out</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 5px;
+    }
+
+    .btn-login {
+      background: #4CAF50;
+      color: white;
+      border: none;
+    }
+
+    .btn-login:hover {
+      background: #45a049;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Çıkış Yapıldı</h1>
+  <p>Keycloak oturumunuz kapatıldı.</p>
+
+  <button class="btn-login" onclick="login()">Tekrar Giriş</button>
+
+  <script>
+    async function login() {
+      const keycloakBaseUrl = "http://localhost:8080/auth";
+      const realm = "SSO";
+      const clientId = "e-devlet";
+      const redirectUri = "http://localhost:4000/callback";
+
+      // PKCE değerleri üret
+      const codeVerifier = generateRandomString();
+      const hashed = await sha256(codeVerifier);
+      const codeChallenge = base64UrlEncode(hashed);
+
+      // code_verifier'ı callback'te kullanmak için sakla
+      sessionStorage.setItem("pkce_code_verifier", codeVerifier);
+
+      const authUrl =
+        `${keycloakBaseUrl}/realms/${realm}/protocol/openid-connect/auth` +
+        `?client_id=${clientId}` +
+        `&response_type=code` +
+        `&scope=openid` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+        `&code_challenge=${codeChallenge}` +
+        `&code_challenge_method=S256&cn=987978978&ccn=978978987`;
+
+      const authWindow = window.open(authUrl, "keycloak-auth", "width=500,height=600,left=200,top=100");
+
+      // Popup'tan gelen mesajı dinle
+      window.addEventListener("message", function onMessage(event) {
+        if (event.data && event.data.type === "auth-callback") {
+          window.removeEventListener("message", onMessage);
+          // Callback sayfasına yönlendir
+          window.location.href = event.data.redirectUrl;
+        }
+      });
+    }
+
+
+    function generateRandomString(length = 64) {
+      const array = new Uint8Array(length);
+      crypto.getRandomValues(array);
+      return Array.from(array, dec => ('0' + dec.toString(16)).slice(-2)).join('');
+    }
+
+    async function sha256(plain) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(plain);
+      return await crypto.subtle.digest('SHA-256', data);
+    }
+
+    function base64UrlEncode(buffer) {
+      return btoa(String.fromCharCode(...new Uint8Array(buffer)))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+    }
+
+  </script>
+</body>
+
+</html>

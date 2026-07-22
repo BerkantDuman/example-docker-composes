@@ -1,0 +1,19 @@
+services:
+  instana-agent:
+    image: icr.io/instana/agent
+    privileged: true
+    volumes:
+      - /var/run:/var/run
+      - /run:/run
+      - /dev:/dev:ro
+      - /sys:/sys:ro
+    environment:
+      - INSTANA_AGENT_KEY=<YOUR_AGENT_KEY>
+      - INSTANA_AGENT_ENDPOINT=<endpoint>
+  your-spring-app:
+    image: your-app-image
+    environment:
+      - INSTANA_AGENT_HOST=instana-agent
+      - INSTANA_AGENT_PORT=42699
+    depends_on:
+      - instana-agent

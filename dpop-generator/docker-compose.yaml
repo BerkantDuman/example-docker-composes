@@ -1,0 +1,8 @@
+version: "3.8"
+
+services:
+  dpopapi:
+    build: .
+    ports:
+      - "5000:5000"
+    container_name: dpopapi

@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Başarılı</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 5px;
+    }
+
+    .btn-token {
+      background: #2196F3;
+      color: white;
+      border: none;
+    }
+
+    .btn-logout {
+      background: #f44336;
+      color: white;
+      border: none;
+    }
+
+    #token-result {
+      margin-top: 20px;
+    }
+
+    textarea {
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .dpop-form {
+      margin-top: 30px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      background: #f9f9f9;
+    }
+
+    .dpop-form h2 {
+      margin-top: 0;
+      font-size: 18px;
+      color: #333;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .form-row label {
+      min-width: 110px;
+      padding-top: 8px;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .form-row select,
+    .form-row input,
+    .form-row textarea {
+      flex: 1;
+      padding: 8px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-top: 0;
+      box-sizing: border-box;
+    }
+
+    .form-row textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .btn-generate {
+      background: #4CAF50;
+      color: white;
+      border: none;
+    }
+
+    .btn-copy {
+      background: #607D8B;
+      color: white;
+      border: none;
+      font-size: 13px;
+      padding: 6px 14px;
+    }
+
+    #dpop-output {
+      margin-top: 16px;
+    }
+
+    #dpop-output .output-section {
+      margin-bottom: 14px;
+    }
+
+    #dpop-output .output-section strong {
+      display: block;
+      font-size: 13px;
+      color: #444;
+      margin-bottom: 4px;
+    }
+
+    #dpop-output textarea {
+      font-family: monospace;
+      font-size: 12px;
+      background: #fff;
+      color: #222;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 8px;
+    }
+
+    #dpop-output .decoded-box {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 12px;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    .error-msg {
+      color: #c62828;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Login Başarılı!</h1>
+  <p>Keycloak'tan başarıyla giriş yaptınız.</p>
+
+  <button class="btn-token" onclick="handleCallback()">Token Al</button>
+  <button class="btn-logout" onclick="logoutRedirect()">Logout</button>
+
+  <div id="token-result"></div>
+
+  <div class="dpop-form">
+    <h2>DPoP Token Üret</h2>
+
+    <div class="form-row">
+      <label>HTTP Method</label>
+      <select id="dpop-method">
+        <option>POST</option>
+        <option>GET</option>
+        <option>PUT</option>
+        <option>DELETE</option>
+        <option>PATCH</option>
+      </select>
+    </div>
+
+    <div class="form-row">
+      <label>HTTP URI</label>
+      <input id="dpop-uri" type="text" placeholder="https://example.com/token" />
+    </div>
+
+    <div class="form-row">
+      <label>Access Token<br><small style="color:#999">(opsiyonel)</small></label>
+      <textarea id="dpop-access-token" placeholder="Varsa access token yapıştırın — ath claim eklenir"></textarea>
+    </div>
+
+    <button class="btn-generate" onclick="generateDPoPFromForm()">DPoP Token Üret</button>
+
+    <div id="dpop-output"></div>
+  </div>
+
+  <script>
+    // Session boyunca aynı anahtar çifti yeniden kullanılır
+    let _dpopKeyPair = null;
+
+    async function getDPoPKeyPair() {
+      if (!_dpopKeyPair) {
+        _dpopKeyPair = await crypto.subtle.generateKey(
+          { name: "ECDSA", namedCurve: "P-256" },
+          true,
+          ["sign", "verify"]
+        );
+      }
+      return _dpopKeyPair;
+    }
+
+    // RFC 9449 uyumlu DPoP proof JWT üretir.
+    // httpMethod : "POST", "GET" vb.
+    // httpUri    : token endpoint URL'i (query string olmadan)
+    // accessToken: (opsiyonel) bearer token varsa ath claim'i eklenir
+    async function generateDPoPToken(httpMethod, httpUri, accessToken = null) {
+      const keyPair = await getDPoPKeyPair();
+
+      const publicKeyJwk = await crypto.subtle.exportKey("jwk", keyPair.publicKey);
+      const { d, ...publicJwk } = publicKeyJwk; // private key materyali çıkar
+
+      const header = { typ: "dpop+jwt", alg: "ES256", jwk: publicJwk };
+      const payload = {
+        jti: crypto.randomUUID(),
+        htm: httpMethod.toUpperCase(),
+        htu: httpUri,
+        iat: Math.floor(Date.now() / 1000)
+      };
+
+      if (accessToken) {
+        const hashBuffer = await crypto.subtle.digest(
+          "SHA-256",
+          new TextEncoder().encode(accessToken)
+        );
+        payload.ath = base64urlEncode(hashBuffer);
+      }
+
+      const signingInput =
+        base64urlEncode(JSON.stringify(header)) + "." +
+        base64urlEncode(JSON.stringify(payload));
+
+      const signatureBuffer = await crypto.subtle.sign(
+        { name: "ECDSA", hash: "SHA-256" },
+        keyPair.privateKey,
+        new TextEncoder().encode(signingInput)
+      );
+
+      return `${signingInput}.${base64urlEncode(signatureBuffer)}`;
+    }
+
+    function base64urlEncode(input) {
+      // ArrayBuffer / TypedArray için binary-safe encoding
+      const binary = (input instanceof ArrayBuffer || ArrayBuffer.isView(input))
+        ? String.fromCharCode(...new Uint8Array(input instanceof ArrayBuffer ? input : input.buffer))
+        : unescape(encodeURIComponent(input)); // string için Unicode-safe
+      return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+    }
+
+    async function generateDPoPFromForm() {
+      const method = document.getElementById("dpop-method").value;
+      const uri = document.getElementById("dpop-uri").value.trim();
+      const accessToken = document.getElementById("dpop-access-token").value.trim() || null;
+      const outputEl = document.getElementById("dpop-output");
+
+      if (!uri) {
+        outputEl.innerHTML = `<p class="error-msg">HTTP URI boş bırakılamaz.</p>`;
+        return;
+      }
+
+      try {
+        const token = await generateDPoPToken(method, uri, accessToken);
+        const [rawHeader, rawPayload] = token.split(".");
+        const decodedHeader = JSON.parse(atob(rawHeader.replace(/-/g, "+").replace(/_/g, "/")));
+        const decodedPayload = JSON.parse(atob(rawPayload.replace(/-/g, "+").replace(/_/g, "/")));
+
+        outputEl.innerHTML = `
+          <div class="output-section">
+            <strong>JWT (tam token)</strong>
+            <textarea rows="4" id="dpop-jwt-out" readonly>${token}</textarea>
+            <button class="btn-copy" onclick="copyText('dpop-jwt-out')">Kopyala</button>
+          </div>
+          <div class="output-section">
+            <strong>Header (decoded)</strong>
+            <div class="decoded-box">${JSON.stringify(decodedHeader, null, 2)}</div>
+          </div>
+          <div class="output-section">
+            <strong>Payload (decoded)</strong>
+            <div class="decoded-box">${JSON.stringify(decodedPayload, null, 2)}</div>
+          </div>`;
+      } catch (err) {
+        outputEl.innerHTML = `<p class="error-msg">Hata: ${err.message}</p>`;
+      }
+    }
+
+    function copyText(elementId) {
+      const el = document.getElementById(elementId);
+      navigator.clipboard.writeText(el.value).then(() => {
+        const btn = el.nextElementSibling;
+        const orig = btn.textContent;
+        btn.textContent = "Kopyalandı!";
+        setTimeout(() => btn.textContent = orig, 1500);
+      });
+    }
+
+    async function handleCallback() {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+
+      const codeVerifier = sessionStorage.getItem("pkce_code_verifier");
+
+      const tokenEndpoint = "http://localhost:8080/auth/realms/SSO/protocol/openid-connect/token";
+      const dpopProof = await generateDPoPToken("POST", tokenEndpoint);
+
+      const tokenResponse = await fetch(tokenEndpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "DPoP": dpopProof
+          },
+          body: new URLSearchParams({
+            grant_type: "authorization_code",
+            client_id: "e-devlet",
+            code: code,
+            redirect_uri: "http://localhost:4000/callback",
+            code_verifier: codeVerifier
+          })
+        }
+      );
+
+      const tokens = await tokenResponse.json();
+      console.log("ACCESS TOKEN:", tokens.access_token);
+      if (tokens.refresh_token) {
+        sessionStorage.setItem("refresh_token", tokens.id_token);
+      }
+    }
+
+
+    function logoutRedirect() {
+      const keycloakBaseUrl = "http://localhost:8080/auth";
+      const realm = "SSO";
+      const clientId = "e-devlet";
+      const redirectUri = "http://localhost:4000/logout.html";
+
+      const logoutUrl =
+        `${keycloakBaseUrl}/realms/${realm}/protocol/openid-connect/logout` +
+        `?client_id=${encodeURIComponent(clientId)}` +
+        `&post_logout_redirect_uri=${encodeURIComponent(redirectUri)}`;
+      //`&id_token_hint=${encodeURIComponent(sessionStorage.getItem("refresh_token") || "")}`
+
+      window.location.href = logoutUrl
+      // Popup kapandığında logout.html'e yönlendir
+      const checkClosed = setInterval(() => {
+        if (logoutWindow && logoutWindow.closed) {
+          clearInterval(checkClosed);
+          window.location.href = "/logout.html";
+        }
+      }, 500);
+    }
+
+    async function logout() {
+      const logoutUrl = "http://localhost:8080/auth/realms/SSO/secure-authentication/api/v2/logout";
+      const refreshToken = sessionStorage.getItem("refresh_token") || "token";
+      const clientId = "e-devlet";
+
+      try {
+        const response = await fetch(logoutUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            refreshToken: refreshToken,
+            clientId: clientId
+          })
+        });
+
+        if (response.ok) {
+          console.log("Logout başarılı");
+          window.location.href = "/logout.html";
+
+        } else {
+          console.error("Logout hatası:", response.status);
+        }
+      } catch (error) {
+        console.error("Logout isteği başarısız:", error);
+      }
+
+    }
+  </script>
+</body>
+
+</html>

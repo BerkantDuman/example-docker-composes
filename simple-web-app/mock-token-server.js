@@ -1,0 +1,31 @@
+const express = require('express');
+
+const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+const TOKEN_RESPONSE = {
+  access_token: "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJKSThFWlFFSllrTER2NXowOGhtYTdyaXRlb0pPbGpybUdhOGRNcTdUUTdRIn0.eyJleHAiOjE3ODMwOTc4ODksImlhdCI6MTc4MzA2MTg4OSwianRpIjoib25ydHJvOjE4OTlhNWRmLWI0ZjMtZDNhMy1jMmY5LTlmNzczOGE1NjkyMSIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MC9hdXRoL3JlYWxtcy9rYXlzZXJpc2VrZXIyIiwiYXVkIjoiYWNjb3VudCIsInN1YiI6Ijc2N2M4OTJlLTRiM2YtNDJiYy05NDYxLTM2ZTM4ZDk4MGZhNCIsInR5cCI6IkJlYXJlciIsImF6cCI6Im15LXB1YmxpYy1jbGllbnQyIiwic2lkIjoiNjE5ZmRlZWMtNDljMS1lMmZiLWMxNTYtM2FmMWVmODI0ZGE4IiwiYWNyIjoiMSIsImFsbG93ZWQtb3JpZ2lucyI6WyIvKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiIsImRlZmF1bHQtcm9sZXMtbWlncm9zIl19LCJyZXNvdXJjZV9hY2Nlc3MiOnsiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJwcm9maWxlIGVtYWlsIiwicGx0X2FjbiI6IjEyMzEyMzEyIiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJwbHRfdWlkZSI6IjEyMzEyMzEyMyIsInBsdF9jbiI6IjEyMzEyMyIsIm5hbWUiOiJiZXJrYW50IGR1bWFuIiwicHJlZmVycmVkX3VzZXJuYW1lIjoidGVzdHVzZXIiLCJnaXZlbl9uYW1lIjoiYmVya2FudCIsImZhbWlseV9uYW1lIjoiZHVtYW4iLCJlbWFpbCI6InNhbmFuZV9fNTYyQGhvdG1haWwuY29tIn0.i2KElxPF_9KvlJ3AdqkuO99oWsUmGzOjVrfDkngyGycEG7D_ZK4ktKQ-OZOF1UCYKsYFSNTQtyjbfETrlkTdJma29sX68zmwe-6eCCRpgxBLvZhyA0LjHsUzj0mpULUysR_OhtxULXM3Oca_u5ipkvsDRfsrHN8_xY6LF7A1ioLQuqy0Yu5udTYrLHjkdckqJj_OAuQ3691k-pnRUuUDey2VXdg2nwHik0vlilEaM5XePUd7tid_euf-sTDiRgEtopWCKUEEJwiDrZsmsTbOdJ63x7czLTOb4ZTzZuTg2kPJML3KtiCYG9RsJpHZOy2FAKVcPtGuN8-HVn2bgpATAQ",
+  expires_in: 36000,
+  refresh_expires_in: 1800,
+  refresh_token: "eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICIwOThiZGM0Ny1mZTk2LTQyODYtYTY3YS1jMDlmMWQzZDlmMzMifQ.eyJleHAiOjE3ODMwNjM2ODksImlhdCI6MTc4MzA2MTg4OSwianRpIjoiOWYxNzEwOGItOGEyNy05NDY0LTU0MWMtZDA3MDgxNmVkOGE3IiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwL2F1dGgvcmVhbG1zL2theXNlcmlzZWtlcjIiLCJhdWQiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvYXV0aC9yZWFsbXMva2F5c2VyaXNla2VyMiIsInN1YiI6Ijc2N2M4OTJlLTRiM2YtNDJiYy05NDYxLTM2ZTM4ZDk4MGZhNCIsInR5cCI6IlJlZnJlc2giLCJhenAiOiJteS1wdWJsaWMtY2xpZW50MiIsInNpZCI6IjYxOWZkZWVjLTQ5YzEtZTJmYi1jMTU2LTNhZjFlZjgyNGRhOCIsInNjb3BlIjoiYmFzaWMgcm9sZXMgYWNyIHByb2ZpbGUgd2ViLW9yaWdpbnMgZW1haWwifQ.M_n0c7hUcgQr1fpaR5EHW9UjP43HCyIYA2GAnIURsNsg5g9JInEl_j7p6xNUjq-xDlukRBfVO9cWI04DGr16uw",
+  token_type: "Bearer",
+  "not-before-policy": 1781009391,
+  session_state: "619fdeec-49c1-e2fb-c156-3af1ef824da8",
+  scope: "profile email"
+};
+
+const TOKEN_TIMEOUT_MS = 2000;
+
+app.post('/auth/realms/kayseriseker2/protocol/openid-connect/token', (req, res) => {
+  console.log('[token-server] token isteği alındı');
+  console.log('[token-server] body:', req.body);
+  console.log(`[token-server] ${TOKEN_TIMEOUT_MS}ms bekleniyor...`);
+
+    console.log('[token-server] token response dönülüyor');
+    res.status(200).json(TOKEN_RESPONSE);
+});
+
+app.listen(8085, () => {
+  console.log('Mock token server running on http://localhost:8085');
+});
